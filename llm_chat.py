@@ -3,10 +3,16 @@ from openai import OpenAI
 
 def build_context(video_info: dict, comments: list, max_comments: int = 150) -> str:
     desc = (video_info.get("description","") or "")[:1000]
+    vc  = int(video_info.get("view_count",  0) or 0)
+    lc  = int(video_info.get("like_count",  0) or 0)
+    cc  = int(video_info.get("comment_count", 0) or 0)
     lines = [
         f"Video Title: {video_info.get('title','')}",
         f"Channel: {video_info.get('channel','')}",
         f"Description: {desc}",
+        f"Views: {vc:,}",
+        f"Likes: {lc:,}",
+        f"YouTube Comment Count: {cc:,}  (Note: YouTube removed public dislike counts in Dec 2021)",
         "",
         f"Total comments analysed: {len(comments)}",
         "",

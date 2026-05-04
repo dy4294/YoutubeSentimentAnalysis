@@ -185,7 +185,11 @@ if analyse_btn:
 
     upsert_video(video_id, url_input.strip(),
                  info.get("title",""), info.get("channel",""),
-                 info.get("description",""), info.get("published",""))
+                 info.get("description",""), info.get("published",""),
+                 view_count=info.get("view_count",0),
+                 like_count=info.get("like_count",0),
+                 dislike_count=info.get("dislike_count",0),
+                 comment_count=info.get("comment_count",0))
     progress.progress(20, text=f"✅ Got: {info.get('title','')[:70]}")
 
     progress.progress(30, text="💬 Fetching comments...")
@@ -258,6 +262,23 @@ with h1:
         f"Fetched: {video.get('fetched_at','')[:16]} UTC  ·  "
         f"{len(all_data)} records"
     )
+    # Video engagement stats row
+    vc  = video.get("view_count",  0) or 0
+    lc  = video.get("like_count",  0) or 0
+    cc  = video.get("comment_count", 0) or 0
+    def fmt(n):
+        n = int(n)
+        if n >= 1_000_000: return f"{n/1_000_000:.1f}M"
+        if n >= 1_000:     return f"{n/1_000:.1f}K"
+        return str(n)
+    if vc or lc or cc:
+        st.markdown(
+            f"👁️ **{fmt(vc)}** views &nbsp;&nbsp; "
+            f"👍 **{fmt(lc)}** likes &nbsp;&nbsp; "
+            f"💬 **{fmt(cc)}** comments &nbsp;&nbsp; "
+            f"<span title='YouTube removed public dislike counts in Dec 2021'>👎 *unavailable*</span>",
+            unsafe_allow_html=True
+        )
     with st.expander("📄 Description"):
         desc = video.get("description","") or "No description."
         st.write(desc[:1500] + ("..." if len(desc) > 1500 else ""))

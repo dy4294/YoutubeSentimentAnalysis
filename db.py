@@ -12,13 +12,17 @@ def init_db():
     conn = get_conn()
     conn.executescript("""
         CREATE TABLE IF NOT EXISTS videos (
-            video_id    TEXT PRIMARY KEY,
-            url         TEXT,
-            title       TEXT,
-            channel     TEXT,
-            description TEXT,
-            published   TEXT,
-            fetched_at  TEXT
+            video_id      TEXT PRIMARY KEY,
+            url           TEXT,
+            title         TEXT,
+            channel       TEXT,
+            description   TEXT,
+            published     TEXT,
+            fetched_at    TEXT,
+            view_count    INTEGER DEFAULT 0,
+            like_count    INTEGER DEFAULT 0,
+            dislike_count INTEGER DEFAULT 0,
+            comment_count INTEGER DEFAULT 0
         );
         CREATE TABLE IF NOT EXISTS comments (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -43,18 +47,29 @@ def init_db():
         CREATE INDEX IF NOT EXISTS idx_comments_video_id ON comments(video_id);
         CREATE INDEX IF NOT EXISTS idx_chat_history_video_id ON chat_history(video_id);
     """)
+    # Migrate: add stats columns to existing databases
+    for col, typ in [("view_count","INTEGER"),("like_count","INTEGER"),("dislike_count","INTEGER"),("comment_count","INTEGER")]:
+        try:
+            conn.execute(f"ALTER TABLE videos ADD COLUMN {col} {typ} DEFAULT 0")
+        except Exception:
+            pass  # column already exists
     conn.commit()
     conn.close()
 
-def upsert_video(video_id, url, title, channel, description, published):
+def upsert_video(video_id, url, title, channel, description, published,
+                 view_count=0, like_count=0, dislike_count=0, comment_count=0):
     conn = get_conn()
     conn.execute("""
-        INSERT INTO videos (video_id, url, title, channel, description, published, fetched_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO videos (video_id, url, title, channel, description, published, fetched_at,
+                            view_count, like_count, dislike_count, comment_count)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(video_id) DO UPDATE SET
             title=excluded.title, channel=excluded.channel,
-            description=excluded.description, fetched_at=excluded.fetched_at
-    """, (video_id, url, title, channel, description, published, datetime.utcnow().isoformat()))
+            description=excluded.description, fetched_at=excluded.fetched_at,
+            view_count=excluded.view_count, like_count=excluded.like_count,
+            dislike_count=excluded.dislike_count, comment_count=excluded.comment_count
+    """, (video_id, url, title, channel, description, published, datetime.utcnow().isoformat(),
+          view_count, like_count, dislike_count, comment_count))
     conn.commit()
     conn.close()
 

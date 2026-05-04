@@ -12,12 +12,22 @@ def extract_video_id(url: str) -> str:
 def get_video_info(api_key, video_id):
     try:
         yt = build("youtube", "v3", developerKey=api_key)
-        resp = yt.videos().list(part="snippet", id=video_id).execute()
+        resp = yt.videos().list(part="snippet,statistics", id=video_id).execute()
         items = resp.get("items", [])
         if not items: return {}
-        s = items[0]["snippet"]
-        return {"title": s.get("title",""), "channel": s.get("channelTitle",""),
-                "description": s.get("description",""), "published": s.get("publishedAt","")}
+        s    = items[0]["snippet"]
+        stat = items[0].get("statistics", {})
+        return {
+            "title":         s.get("title", ""),
+            "channel":       s.get("channelTitle", ""),
+            "description":   s.get("description", ""),
+            "published":     s.get("publishedAt", ""),
+            "view_count":    int(stat.get("viewCount",    0) or 0),
+            "like_count":    int(stat.get("likeCount",    0) or 0),
+            # dislikeCount removed by YouTube in Dec 2021 — always 0 via API
+            "dislike_count": 0,
+            "comment_count": int(stat.get("commentCount", 0) or 0),
+        }
     except Exception as e:
         return {"error": str(e)}
 
